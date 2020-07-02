@@ -164,6 +164,7 @@
     </ItemGroup>
     <ItemGroup>
       <Content Include=".gitignore" />
+      <Content Include="Module.json" />
       <Content Include="Views\Game\Service\FileManager.Plugin.GitClone.cshtml" />
       <Content Include="Views\Game\Service\FileManager.Plugin.GitClone.js" />
     </ItemGroup>
