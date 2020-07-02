@@ -1,0 +1,60 @@
+﻿@using Kendo.Mvc.UI
+@model Models.Game.FileManager.FileManagerModel
+
+<script>
+
+function gitCloneDialog(){    
+    $('<div id="gitCloneDialog"></div>').kendoDialog({
+      title: "Git Clone",
+      close: function(){
+            const dialog = $("#gitCloneDialog").data("kendoDialog");
+            dialog.destroy();  
+      },
+      content: `
+        @(Html.Kendo().TextBox()
+            .Name("gitUrl")
+            .Placeholder("https://github.com/Organisation/Repo")
+            .Label(x => x.Floating(false).Content("<strong>Git URL:</strong>"))
+            .ToClientTemplate()
+            )
+        @(Html.Kendo().CheckBox()
+            .Name("extract")
+            .Checked(false)
+            .Label("<strong>Extract when downloaded?</strong>")
+            .ToClientTemplate()
+            )
+      `,
+      visible: false,
+      width: "400px",
+      actions: [
+            {text: "Cancel"},
+            {text: "Clone", primary: true, action: cloneGit, cssClass: "k-button-ok"},
+      ]
+    }).data("kendoDialog").open();
+}
+
+function cloneGit(){
+    const fileManager = $("#filemanager").getKendoFileManager();
+    const path = fileManager.path();
+    const gitUrl = $("#gitUrl").data("kendoTextBox").value();
+    const extract = document.getElementById("extract").checked;
+    kendo.ui.progress($(".k-filemanager-view"), true);
+    
+    $.ajax({
+        type: "POST",
+        url: "/Git/Clone/@(Model.Service.ServiceId)",
+        data: JSON.stringify({ "target": path, "gitUrl": gitUrl, "extract": extract }),
+        contentType: "application/json; charset=utf-8",
+        dataType: "text",
+        error: function (e) {
+            kendo.ui.progress($(".k-filemanager-view"), false);
+            OnError(e);
+        },
+        success: function (e) {
+            fileManager.refresh();
+            kendo.ui.progress($(".k-filemanager-view"), false);
+            OnSuccess(e);
+        }
+    });
+}
+</script>
