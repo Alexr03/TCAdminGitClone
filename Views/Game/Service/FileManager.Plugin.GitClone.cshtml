@@ -13,7 +13,7 @@ function gitCloneDialog(){
       content: `
         @(Html.Kendo().TextBox()
             .Name("gitUrl")
-            .Placeholder("https://github.com/Organisation/Repo")
+            .Placeholder("https://github.com/organisation/repo")
             .Label(x => x.Floating(false).Content("<strong>Git URL:</strong>"))
             .ToClientTemplate()
             )
@@ -48,12 +48,12 @@ function cloneGit(){
         dataType: "text",
         error: function (e) {
             kendo.ui.progress($(".k-filemanager-view"), false);
-            OnError(e);
+            TCAdmin.Ajax.ShowBasicDialog("Clone Failure", e.responseText);
         },
         success: function (e) {
             fileManager.refresh();
             kendo.ui.progress($(".k-filemanager-view"), false);
-            OnSuccess(e);
+            TCAdmin.Ajax.ShowBasicDialog("Clone Successful", e.responseText);
         }
     });
 }

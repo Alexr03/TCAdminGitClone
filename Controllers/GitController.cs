@@ -11,6 +11,8 @@ namespace TCAdminGitClone.Controllers
 {
     public class GitController : BaseServiceController
     {
+        [HttpPost]
+        [ParentAction("Service", "Home")]
         public ActionResult Clone(int id, string target, string gitUrl, bool extract)
         {
             this.EnforceFeaturePermission("FileManager");
@@ -26,22 +28,32 @@ namespace TCAdminGitClone.Controllers
             
             var repoName = gitUri.Segments.LastOrDefault() + ".zip";
             var service = Service.GetSelectedService();
-            var fileSystem = new Server(service.ServerId).FileSystemService;
+            var fileSystem = TCAdmin.SDK.Objects.Server.GetSelectedServer().FileSystemService;
             var gitCloneUrl = GetGitDownloadUrl(gitUrl);
             var saveTo = Path.Combine(service.WorkingDirectory, target, repoName);
             fileSystem.DownloadFile(saveTo, gitCloneUrl);
 
             if (extract)
             {
-                var serializedDirectorySecurity =
-                    TCAdmin.SDK.Misc.ObjectXml.ObjectToXml(service.GetDirectorySecurityForCurrentUser());
-                fileSystem.Extract(saveTo, Path.GetDirectoryName(saveTo), serializedDirectorySecurity);
+                try
+                {
+                    var serializedDirectorySecurity =
+                        TCAdmin.SDK.Misc.ObjectXml.ObjectToXml(service.GetDirectorySecurityForCurrentUser());
+                    fileSystem.Extract(saveTo, Path.GetDirectoryName(saveTo), serializedDirectorySecurity);
+                }
+                catch (Exception e)
+                {
+                    return new JsonHttpStatusResult(new
+                    {
+                        responseText = "Error when extracting: " + e.Message
+                    }, HttpStatusCode.Forbidden);
+                }
             }
 
-            return Json(new
+            return new JsonHttpStatusResult(new
             {
                 responseText = $"Successfully cloned <strong>{gitUrl}</strong>"
-            });
+            }, HttpStatusCode.OK);
         }
 
         private static string GetGitDownloadUrl(string gitUrl)
@@ -52,7 +64,7 @@ namespace TCAdminGitClone.Controllers
             }
             
             gitUrl = gitUrl.Replace(".git", "");
-            gitUrl += "archive/master.zip";
+            gitUrl += "/archive/master.zip";
 
             return gitUrl;
         }
