@@ -14,6 +14,7 @@ function gitCloneDialog(){
         @(Html.Kendo().TextBox()
             .Name("gitUrl")
             .Placeholder("https://github.com/organisation/repo")
+            .HtmlAttributes(new {style = "width: 100%"})
             .Label(x => x.Floating(false).Content("<strong>Git URL:</strong>"))
             .ToClientTemplate()
             )
@@ -25,7 +26,8 @@ function gitCloneDialog(){
             )
       `,
       visible: false,
-      width: "400px",
+      width: "500px",
+      modal: true,
       actions: [
             {text: "Cancel"},
             {text: "Clone", primary: true, action: cloneGit, cssClass: "k-button-ok"},
@@ -45,15 +47,18 @@ function cloneGit(){
         url: "/Git/Clone/@(Model.Service.ServiceId)",
         data: JSON.stringify({ "target": path, "gitUrl": gitUrl, "extract": extract }),
         contentType: "application/json; charset=utf-8",
-        dataType: "text",
+        dataType: "json",
         error: function (e) {
+            console.log(e);
             kendo.ui.progress($(".k-filemanager-view"), false);
-            TCAdmin.Ajax.ShowBasicDialog("Clone Failure", e.responseText);
+            if (e.responseJSON && e.responseJSON.responseText)
+                TCAdmin.Ajax.ShowBasicDialog("Clone Failure", e.responseJSON.responseText);
         },
         success: function (e) {
+            console.log(e);
             fileManager.refresh();
             kendo.ui.progress($(".k-filemanager-view"), false);
-            TCAdmin.Ajax.ShowBasicDialog("Clone Successful", e.responseText);
+            TCAdmin.Ajax.ShowBasicDialog("Clone Success", e.responseText);
         }
     });
 }
