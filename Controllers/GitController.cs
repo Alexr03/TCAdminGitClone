@@ -5,10 +5,13 @@ using System.Net;
 using System.Web.Mvc;
 using TCAdmin.GameHosting.SDK.Objects;
 using TCAdmin.SDK.Web.MVC.Controllers;
+using TCAdmin.Web.MVC;
 using TCAdminGitClone.HttpResponses;
 
 namespace TCAdminGitClone.Controllers
 {
+    [ExceptionHandler]
+    [Authorize]
     public class GitController : BaseServiceController
     {
         [HttpPost]
