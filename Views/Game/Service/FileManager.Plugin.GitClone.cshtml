@@ -51,14 +51,14 @@ function cloneGit(){
         error: function (e) {
             console.log(e);
             kendo.ui.progress($(".k-filemanager-view"), false);
-            if (e.responseJSON && e.responseJSON.responseText)
-                TCAdmin.Ajax.ShowBasicDialog("Clone Failure", e.responseJSON.responseText);
+            if (e.responseJSON && e.responseJSON.Message)
+                TCAdmin.Ajax.ShowBasicDialog("Clone Failure", e.responseJSON.Message);
         },
         success: function (e) {
             console.log(e);
             fileManager.refresh();
             kendo.ui.progress($(".k-filemanager-view"), false);
-            TCAdmin.Ajax.ShowBasicDialog("Clone Success", e.responseText);
+            TCAdmin.Ajax.ShowBasicDialog("Clone Success", e.Message);
         }
     });
 }

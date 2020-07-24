@@ -4,13 +4,13 @@ using System.Linq;
 using System.Net;
 using System.Web.Mvc;
 using TCAdmin.GameHosting.SDK.Objects;
+using TCAdmin.Interfaces.Logging;
 using TCAdmin.SDK.Web.MVC.Controllers;
 using TCAdmin.Web.MVC;
 using TCAdminGitClone.HttpResponses;
 
 namespace TCAdminGitClone.Controllers
 {
-    [ExceptionHandler]
     [Authorize]
     public class GitController : BaseServiceController
     {
@@ -19,55 +19,51 @@ namespace TCAdminGitClone.Controllers
         public ActionResult Clone(int id, string target, string gitUrl, bool extract)
         {
             this.EnforceFeaturePermission("FileManager");
-            try
+            var uriValid = Uri.TryCreate(gitUrl, UriKind.Absolute, out var gitUri) && gitUri != null &&
+                           (gitUri.Scheme == Uri.UriSchemeHttp ||
+                            gitUri.Scheme == Uri.UriSchemeHttps);
+            if (!uriValid)
             {
-                var uriValid = Uri.TryCreate(gitUrl, UriKind.Absolute, out var gitUri) && gitUri != null &&
-                               (gitUri.Scheme == Uri.UriSchemeHttp ||
-                                gitUri.Scheme == Uri.UriSchemeHttps);
-                if (!uriValid)
+                return new JsonHttpStatusResult(new
+                {
+                    responseText = "Invalid URL provided."
+                }, HttpStatusCode.BadRequest);
+            }
+
+            var repoName = gitUri.Segments.LastOrDefault() + ".zip";
+            var service = Service.GetSelectedService();
+            var server = TCAdmin.SDK.Objects.Server.GetSelectedServer();
+            var dirsec = service.GetDirectorySecurityForCurrentUser();
+            var vdir = new TCAdmin.SDK.VirtualFileSystem.VirtualDirectory(server.OperatingSystem, dirsec);
+            var fileSystem = server.FileSystemService;
+            var gitCloneUrl = GetGitDownloadUrl(gitUrl);
+            var saveTo = Path.Combine(service.WorkingDirectory, target, repoName);
+            TCAdmin.SDK.LogManager.Write($"SaveTo: {saveTo}", LogType.Console);
+            saveTo = vdir.CombineWithRealPhysicalPath(saveTo);
+            TCAdmin.SDK.LogManager.Write($"SaveTo2: {saveTo}", LogType.Console);
+            fileSystem.DownloadFile(saveTo, gitCloneUrl);
+
+            if (extract)
+            {
+                try
+                {
+                    var serializedDirectorySecurity =
+                        TCAdmin.SDK.Misc.ObjectXml.ObjectToXml(service.GetDirectorySecurityForCurrentUser());
+                    fileSystem.Extract(saveTo, Path.GetDirectoryName(saveTo), serializedDirectorySecurity);
+                }
+                catch (Exception e)
                 {
                     return new JsonHttpStatusResult(new
                     {
-                        responseText = "Invalid URL provided."
-                    }, HttpStatusCode.BadRequest);
+                        Message = "Error when extracting: " + e.Message
+                    }, HttpStatusCode.InternalServerError);
                 }
-
-                var repoName = gitUri.Segments.LastOrDefault() + ".zip";
-                var service = Service.GetSelectedService();
-                var fileSystem = TCAdmin.SDK.Objects.Server.GetSelectedServer().FileSystemService;
-                var gitCloneUrl = GetGitDownloadUrl(gitUrl);
-                var saveTo = Path.Combine(service.WorkingDirectory, target, repoName);
-                fileSystem.DownloadFile(saveTo, gitCloneUrl);
-
-                if (extract)
-                {
-                    try
-                    {
-                        var serializedDirectorySecurity =
-                            TCAdmin.SDK.Misc.ObjectXml.ObjectToXml(service.GetDirectorySecurityForCurrentUser());
-                        fileSystem.Extract(saveTo, Path.GetDirectoryName(saveTo), serializedDirectorySecurity);
-                    }
-                    catch (Exception e)
-                    {
-                        return new JsonHttpStatusResult(new
-                        {
-                            responseText = "Error when extracting: " + e.Message
-                        }, HttpStatusCode.InternalServerError);
-                    }
-                }
-
-                return new JsonHttpStatusResult(new
-                {
-                    responseText = $"Successfully cloned <strong>{gitUrl}</strong>"
-                }, HttpStatusCode.OK);
             }
-            catch (Exception e)
+
+            return new JsonHttpStatusResult(new
             {
-                return new JsonHttpStatusResult(new
-                {
-                    responseText = "An error occurred: " + e.Message
-                }, HttpStatusCode.InternalServerError);
-            }
+                Message = $"Successfully cloned <strong>{gitUrl}</strong>"
+            }, HttpStatusCode.OK);
         }
 
         private static string GetGitDownloadUrl(string gitUrl)
@@ -79,7 +75,6 @@ namespace TCAdminGitClone.Controllers
 
             gitUrl = gitUrl.Replace(".git", "");
             gitUrl += "/archive/master.zip";
-
             return gitUrl;
         }
     }
