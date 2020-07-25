@@ -12,6 +12,7 @@ using TCAdminGitClone.HttpResponses;
 namespace TCAdminGitClone.Controllers
 {
     [Authorize]
+    [ExceptionHandler]
     public class GitController : BaseServiceController
     {
         [HttpPost]
@@ -37,10 +38,8 @@ namespace TCAdminGitClone.Controllers
             var vdir = new TCAdmin.SDK.VirtualFileSystem.VirtualDirectory(server.OperatingSystem, dirsec);
             var fileSystem = server.FileSystemService;
             var gitCloneUrl = GetGitDownloadUrl(gitUrl);
-            var saveTo = Path.Combine(service.WorkingDirectory, target, repoName);
-            TCAdmin.SDK.LogManager.Write($"SaveTo: {saveTo}", LogType.Console);
-            saveTo = vdir.CombineWithRealPhysicalPath(saveTo);
-            TCAdmin.SDK.LogManager.Write($"SaveTo2: {saveTo}", LogType.Console);
+            var saveTo = vdir.CombineWithPhysicalPath(target) + vdir.CombineWithPhysicalPath(repoName);
+            TCAdmin.SDK.LogManager.Write($"SaveTo: {saveTo}", LogType.Information);
             fileSystem.DownloadFile(saveTo, gitCloneUrl);
 
             if (extract)
