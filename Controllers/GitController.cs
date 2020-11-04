@@ -33,7 +33,7 @@ namespace TCAdminGitClone.Controllers
             var game = TCAdmin.GameHosting.SDK.Objects.Game.GetSelectedGame();
             var server = TCAdmin.SDK.Objects.Server.GetSelectedServer();
             var fileSystem = server.FileSystemService;
-            var gitCloneUrl = GetGitDownloadUrl(gitUrl);
+            var gitCloneUrl = GetGitDownloadUrl(gitUri);
             string saveTo;
             if (!string.IsNullOrEmpty(game.Paths.RelativeUserFiles) &&
                 TCAdmin.SDK.Web.Session.GetCurrentUser().UserType == TCAdmin.SDK.Objects.UserType.User)
@@ -47,7 +47,7 @@ namespace TCAdminGitClone.Controllers
                     .CombinePath(server.OperatingSystem, service.RootDirectory, target, repoName).TrimEnd('/', '\\');
             }
 
-            fileSystem.DownloadFile(saveTo, gitCloneUrl);
+            fileSystem.DownloadFile(saveTo, gitCloneUrl.ToString());
 
             if (extract)
             {
@@ -72,17 +72,18 @@ namespace TCAdminGitClone.Controllers
             }, HttpStatusCode.OK);
         }
 
-        private static string GetGitDownloadUrl(string gitUrl)
+        private static Uri GetGitDownloadUrl(Uri gitUrl)
         {
-            if (gitUrl.EndsWith(".zip") || gitUrl.EndsWith(".pk3") || gitUrl.EndsWith(".bsp") ||
-                gitUrl.EndsWith(".ut2"))
+            var urlString = gitUrl.ToString();
+            if (urlString.EndsWith(".zip") || urlString.EndsWith(".pk3") || urlString.EndsWith(".bsp") ||
+                urlString.EndsWith(".ut2"))
             {
                 return gitUrl;
             }
 
-            gitUrl = gitUrl.Replace(".git", "");
-            gitUrl += "/archive/master.zip";
-            return gitUrl;
+            urlString = urlString.Replace(".git", "");
+            urlString += "/archive/master.zip";
+            return new Uri(urlString);
         }
 
         private static string GetFileName(string file)
